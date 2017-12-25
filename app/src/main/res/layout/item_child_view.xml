@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="8dp"
+    android:paddingLeft="8dp">
+
+    <TextView
+        android:id="@+id/text_child_uuid"
+        style="@style/BaseText"
+        android:layout_width="match_parent"
+        android:layout_marginTop="4dp"
+        android:text="UUID:555"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/text_group_permissions"
+        style="@style/BaseText"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentStart="true"
+        android:layout_below="@id/text_child_uuid"
+        android:layout_marginTop="4dp"
+        android:textSize="12sp" />
+
+</RelativeLayout>

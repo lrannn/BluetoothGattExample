@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_gray_whit"
+    android:orientation="vertical">
+
+
+    <TextView
+        android:id="@+id/text_rssi"
+        style="@style/BaseText"
+        android:layout_marginLeft="5dp"
+        android:layout_marginTop="12dp"
+        android:text="@string/device_info_rssi"
+        android:textSize="16sp"
+        tools:layout_editor_absoluteX="16dp"
+        tools:layout_editor_absoluteY="70dp" />
+
+
+    <TextView
+        android:id="@+id/text_addr"
+        style="@style/BaseText"
+        android:layout_marginLeft="5dp"
+        android:layout_marginTop="5dp"
+        android:text="@string/device_info_address"
+        android:textSize="16sp"
+        tools:layout_editor_absoluteX="16dp"
+        tools:layout_editor_absoluteY="70dp" />
+
+
+    <ExpandableListView
+        android:id="@+id/service_ex_listview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="8dp"
+        android:groupIndicator="@null" />
+</LinearLayout>
