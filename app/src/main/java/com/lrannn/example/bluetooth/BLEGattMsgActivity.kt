@@ -32,7 +32,7 @@ import com.afollestad.materialdialogs.MaterialDialog
 
 /**
  * Created by lrannn on 2017/12/22.
- * @email liuran@yinkman.com
+ * @email lran7master@gmail.com
  */
 class BLEGattMsgActivity : AppCompatActivity(), ExpandableListView.OnChildClickListener {
     companion object {
@@ -44,12 +44,15 @@ class BLEGattMsgActivity : AppCompatActivity(), ExpandableListView.OnChildClickL
     private lateinit var mServiceName: String
     private lateinit var mServiceUUID: String
     private lateinit var mServiceAddr: String
+    private var content: String = ""
+
     private var mService: BluetoothService? = null
     private val mHandler = Handler()
 
     private lateinit var mTextRssi: TextView
-    private lateinit var mListView: ExpandableListView
+    private var mInputDialog: MaterialDialog? = null
     private var dialog: MaterialDialog? = null
+    private lateinit var mListView: ExpandableListView
 
     private val mServiceConnectionCallback: ServiceConnection = object : ServiceConnection {
 
@@ -62,10 +65,9 @@ class BLEGattMsgActivity : AppCompatActivity(), ExpandableListView.OnChildClickL
                 mService = binder.getService()
                 val success: Boolean = mService?.setupBluetoothAdapter()!!
                 if (!success) {
-                    Toast.makeText(this@BLEGattMsgActivity, "Service setup bluetooth failed!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@BLEGattMsgActivity, "BLE is not support!", Toast.LENGTH_LONG).show()
                 } else {
-                    val success = mService?.connect(mServiceAddr)
-                    if (success!!) mHandler.removeCallbacks(null)
+                    if (mService?.connect(mServiceAddr)!!) mHandler.removeCallbacksAndMessages(null)
                 }
             }
         }
@@ -89,6 +91,12 @@ class BLEGattMsgActivity : AppCompatActivity(), ExpandableListView.OnChildClickL
                 BluetoothService.ACTION_RSSI_CHANGED -> {
                     val rssi = intent.getIntExtra(BluetoothService.EXTRA_RSSI_DATA, 0)
                     mTextRssi.text = getString(R.string.device_info_rssi, rssi)
+                }
+                BluetoothService.ACTION_DATA_WRITED -> {
+                    val data = intent.getStringExtra(BluetoothService.EXTRA_DATA)
+                    if (!data.isNullOrEmpty() && data == content) {
+                        Toast.makeText(this@BLEGattMsgActivity, "发送成功，牛逼！", Toast.LENGTH_SHORT).show()
+                    } else Toast.makeText(this@BLEGattMsgActivity, "发送失败，不牛逼！", Toast.LENGTH_SHORT).show()
                 }
                 BluetoothService.ACTION_GATT_SERVICES_DISCOVERED -> {
                     val gattServices = mService?.getSupportGattServices()
@@ -162,10 +170,8 @@ class BLEGattMsgActivity : AppCompatActivity(), ExpandableListView.OnChildClickL
     private fun displayGattService(gattServices: List<BluetoothGattService>?) {
         if (gattServices == null) return
 
-        gattServices.forEach {
-            val adapter = ServiceEXListAdapter(gattServices, applicationContext)
-            mListView.setAdapter(adapter)
-        }
+        val adapter = ServiceEXListAdapter(gattServices, applicationContext)
+        mListView.setAdapter(adapter)
     }
 
     private fun makeGattUpdateIntentFilter(): IntentFilter {
@@ -175,6 +181,7 @@ class BLEGattMsgActivity : AppCompatActivity(), ExpandableListView.OnChildClickL
         intentFilter.addAction(BluetoothService.ACTION_GATT_SERVICES_DISCOVERED)
         intentFilter.addAction(BluetoothService.ACTION_DATA_AVAILABLE)
         intentFilter.addAction(BluetoothService.ACTION_RSSI_CHANGED)
+        intentFilter.addAction(BluetoothService.ACTION_DATA_WRITED)
         return intentFilter
     }
 
@@ -191,19 +198,16 @@ class BLEGattMsgActivity : AppCompatActivity(), ExpandableListView.OnChildClickL
     }
 
 
-    private var mInputDialog: MaterialDialog? = null
-
     private fun showEditTextDialog(characteristic: BluetoothGattCharacteristic) {
         if (mInputDialog == null) {
             mInputDialog = MaterialDialog.Builder(this)
                     .title("提示")
                     .input("输入字符", null) { dialog, input ->
-                        val content = input.toString()
+                        content = input.toString()
                         if (!content.isEmpty()) {
                             characteristic.setValue(content)
                             val successful = mService?.writeCharacteristic(characteristic)
                             if (successful!!) {
-                                Toast.makeText(this, "发送成功，牛逼！", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }

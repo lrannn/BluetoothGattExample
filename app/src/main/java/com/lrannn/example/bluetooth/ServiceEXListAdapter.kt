@@ -26,7 +26,7 @@ import android.widget.TextView
 
 /**
  * Created by lrannn on 2017/12/22.
- * @email liuran@yinkman.com
+ * @email lran7master@gmail.com
  */
 class ServiceEXListAdapter(data: List<BluetoothGattService>, mContext: Context) : BaseExpandableListAdapter() {
 
@@ -39,7 +39,16 @@ class ServiceEXListAdapter(data: List<BluetoothGattService>, mContext: Context) 
         val mPropertiesTV = view.findViewById<TextView>(R.id.text_group_permissions)
         val properties = mServices[groupPosition].characteristics[childPosition].properties
         val propertiesText = checkProperties(properties)
-        textView.text = context.getString(R.string.service_group_uuid, mServices[groupPosition].characteristics[childPosition].uuid.toString())
+
+        val childCharacteristics = mServices[groupPosition].characteristics[childPosition]
+        val uuid = childCharacteristics.uuid.toString()
+        var name = SampleGattAttributes.lookup(uuid)
+        if (name != null) {
+            val serialNum = uuid.substring(4, 8)
+            textView.text = "$name : ${serialNum.toUpperCase()}"
+        } else {
+            textView.text = context.getString(R.string.service_group_uuid, uuid)
+        }
         mPropertiesTV.text = context.getString(R.string.child_properties_text, propertiesText)
         return view
     }
@@ -48,7 +57,8 @@ class ServiceEXListAdapter(data: List<BluetoothGattService>, mContext: Context) 
     override fun getGroupView(groupPosition: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View {
         val view = LayoutInflater.from(context).inflate(R.layout.item_group_view, null)
         val textView = view.findViewById<TextView>(R.id.text_group_uuid)
-        textView.text = context.getString(R.string.service_group_uuid, mServices[groupPosition].uuid.toString())
+        val uuid = mServices[groupPosition].uuid.toString()
+        textView.text = (SampleGattAttributes.lookup(uuid) ?: context.getString(R.string.service_group_uuid, uuid.substring(4, 8)))
         return view
     }
 
@@ -73,7 +83,6 @@ class ServiceEXListAdapter(data: List<BluetoothGattService>, mContext: Context) 
         return groupPosition.toLong()
     }
 
-
     override fun getGroupCount(): Int {
         return mServices.size
     }
@@ -91,24 +100,25 @@ class ServiceEXListAdapter(data: List<BluetoothGattService>, mContext: Context) 
 
         if ((flag and BluetoothGattCharacteristic.PROPERTY_READ) != 0) {
             mBuild.append("读")
-            mBuild.append("/")
+            mBuild.append("|")
         }
         if ((flag and BluetoothGattCharacteristic.PROPERTY_WRITE) != 0) {
             mBuild.append("写")
-            mBuild.append("/")
+            mBuild.append("|")
         }
         if ((flag and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) {
             mBuild.append("无回应写")
-            mBuild.append("/")
+            mBuild.append("|")
         }
         if ((flag and BluetoothGattCharacteristic.PROPERTY_BROADCAST) != 0) {
             mBuild.append("广播")
-            mBuild.append("/")
+            mBuild.append("|")
         }
         if ((flag and BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) {
             mBuild.append("通知")
-            mBuild.append("/")
+            mBuild.append("|")
         }
+        mBuild.removeRange(mBuild.length - 2, mBuild.length - 1)
         return mBuild.toString()
     }
 

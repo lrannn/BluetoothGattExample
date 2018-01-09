@@ -15,9 +15,8 @@
         android:paddingBottom="8dp"
         android:paddingTop="8dp"
         android:text="@string/service_group_uuid"
-        android:textColor="@android:color/black" />
-
-
+        android:textColor="@android:color/black"
+        android:textSize="18sp" />
 
 
 </RelativeLayout>

@@ -2,7 +2,7 @@
     <string name="app_name">BluetoothExample</string>
     <string name="ble_unknow_device_name">Unknow device</string>
     <string name="device_info_address">ADDRESS: %s</string>
-    <string name="service_group_uuid">SERVICE UUID: %s</string>
+    <string name="service_group_uuid">SERVICE UUID: 0x%s</string>
     <string name="device_info_rssi">RSSI: %d</string>
     <string name="child_properties_text">属性: %s</string>
 

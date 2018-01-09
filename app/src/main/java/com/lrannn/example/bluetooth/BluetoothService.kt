@@ -25,7 +25,7 @@ import android.widget.Toast
 
 /**
  * Created by lrannn on 2017/12/20.
- * @email liuran@yinkman.com
+ * @email lran7master@gmail.com
  */
 class BluetoothService : Service() {
 
@@ -34,12 +34,13 @@ class BluetoothService : Service() {
         val ACTION_GATT_DISCONNECTED = "com.lrannn.example.bluetooth.ACTION_GATT_DISCONNECTED"
         val ACTION_GATT_SERVICES_DISCOVERED = "com.lrannn.example.bluetooth.ACTION_GATT_SERVICES_DISCOVERED"
         val ACTION_DATA_AVAILABLE = "com.lrannn.example.bluetooth.ACTION_DATA_AVAILABLE"
+        val ACTION_DATA_WRITED = "com.lrannn.example.bluetooth.ACTION_DATA_WRITED"
         val ACTION_RSSI_CHANGED = "com.lrannn.example.bluetooth.ACTION_RSSI_CHANGED"
         val EXTRA_DATA = "com.lrannn.example.bluetooth.EXTRA_DATA"
         val EXTRA_RSSI_DATA = "com.lrannn.example.bluetooth.EXTRA_RSSI_DATA"
     }
 
-    private val mBinder = LocalBinder()
+    private val mBinder: IBinder = LocalBinder()
     private var mBluetoothGatt: BluetoothGatt? = null
     private var mBluetoothAdapter: BluetoothAdapter? = null
     private var mCurrentDevice: BluetoothDevice? = null
@@ -69,7 +70,13 @@ class BluetoothService : Service() {
 
         override fun onCharacteristicRead(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                updateBroadCast(ACTION_DATA_AVAILABLE, characteristic!!)
+                updateBroadCast(Intent(ACTION_DATA_AVAILABLE), characteristic!!)
+            }
+        }
+
+        override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                updateBroadCast(Intent(ACTION_DATA_WRITED), characteristic!!)
             }
         }
 
@@ -106,21 +113,18 @@ class BluetoothService : Service() {
             Toast.makeText(this, "连接失败~", Toast.LENGTH_SHORT).show()
         }
         return false
-
     }
 
-
-    private fun connect(mDevice: BluetoothDevice): Boolean {
-        mBluetoothGatt = mDevice.connectGatt(this, false, mGattCallback)
+    private fun connect(device: BluetoothDevice): Boolean {
+        mBluetoothGatt = device.connectGatt(this, false, mGattCallback)
         if (mBluetoothGatt != null) {
-            mCurrentDevice = mDevice
+            mCurrentDevice = device
             return true
         } else Toast.makeText(this, "Connect failed！", Toast.LENGTH_SHORT).show()
         return false
     }
 
     fun writeCharacteristic(characteristic: BluetoothGattCharacteristic?): Boolean? = mBluetoothGatt?.writeCharacteristic(characteristic)
-
 
     fun disconnect() {
         if (mBluetoothAdapter == null) {
@@ -140,11 +144,10 @@ class BluetoothService : Service() {
 
     fun getSupportGattServices(): List<BluetoothGattService>? {
         if (mBluetoothGatt != null) {
-            return mBluetoothGatt!!.services
+            return mBluetoothGatt?.services
         }
         return null
     }
-
 
     override fun onBind(intent: Intent?): IBinder {
         return mBinder
@@ -155,9 +158,8 @@ class BluetoothService : Service() {
         return super.onUnbind(intent)
     }
 
-
-    private fun updateBroadCast(action: String, characteristic: BluetoothGattCharacteristic? = null) {
-        this.updateBroadCast(Intent(action), characteristic)
+    private fun updateBroadCast(action: String) {
+        this.updateBroadCast(Intent(action))
     }
 
     private fun updateBroadCast(intent: Intent, characteristic: BluetoothGattCharacteristic? = null) {

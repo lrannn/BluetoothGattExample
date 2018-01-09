@@ -23,6 +23,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
+import android.support.design.widget.FloatingActionButton
 import android.support.v7.app.AppCompatActivity
 import android.view.LayoutInflater
 import android.view.View
@@ -42,14 +43,12 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemClickListener {
     private lateinit var mBleDeviceAdapter: DevicesAdapter
     private var mService: BluetoothService? = null
 
-    private lateinit var mContainer: FrameLayout
+    private var scaning: Boolean = false
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        supportActionBar?.setIcon(R.drawable.ic_bluetooth_black_24dp)
 
         if (!checkBluetoothFeatures()) {
             Toast.makeText(this, "BLE is not support!", Toast.LENGTH_LONG).show()
@@ -70,14 +69,16 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemClickListener {
         mBleDeviceAdapter = DevicesAdapter()
         mListView.adapter = mBleDeviceAdapter
 
-        findViewById<TextView>(R.id.btn_start).setOnClickListener({
-            mDeviceList.clear()
-            scanDevice(true)
-        })
-
-        findViewById<TextView>(R.id.btn_stop).setOnClickListener({
-            scanDevice(false)
-        })
+        findViewById<FloatingActionButton>(R.id.fab_scan).setOnClickListener {
+            if (scaning) {
+                scaning = false
+                scanDevice(false)
+            } else {
+                scaning = true
+                mDeviceList.clear()
+                scanDevice(true)
+            }
+        }
     }
 
 
@@ -125,7 +126,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemClickListener {
         addDevice(device)
     }
 
-
     override fun onItemClick(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
         val device = mDeviceList[position]
         val intent = Intent(this@MainActivity, BLEGattMsgActivity::class.java)
@@ -133,7 +133,6 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemClickListener {
         intent.putExtra(BLEGattMsgActivity.EXTRA_DEVICE_NAME, device.name)
         intent.putExtra(BLEGattMsgActivity.EXTRA_DEVICE_ADDRESS, device.address)
         intent.putExtra(BLEGattMsgActivity.EXTRA_DEVICE_UUIDS, uuid)
-
         startActivity(intent)
     }
 
