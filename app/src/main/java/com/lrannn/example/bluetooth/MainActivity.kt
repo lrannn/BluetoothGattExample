@@ -25,26 +25,33 @@ import android.os.Bundle
 import android.os.Handler
 import android.support.design.widget.FloatingActionButton
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.widget.CardView
+import android.support.v7.widget.LinearLayoutManager
+import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.*
+import android.widget.TextView
+import android.widget.Toast
 
-class MainActivity : AppCompatActivity(), AdapterView.OnItemClickListener {
+
+class MainActivity : AppCompatActivity() {
 
     companion object {
         private val REQUEST_BLE_ENABLE: Int = 0x00001
+        private val TAG: String = "MainActivity"
     }
 
-    private var mBluetoothAdapter: BluetoothAdapter? = null
+    private lateinit var mBleDeviceAdapter: BLEDeviceAdapter
     private val mHandler: Handler = Handler()
-    private var startScan: Boolean = false
     private var mDeviceList: ArrayList<BluetoothDevice> = ArrayList()
-    private lateinit var mBleDeviceAdapter: DevicesAdapter
-    private var mService: BluetoothService? = null
-
     private var scaning: Boolean = false
+    private var startScan: Boolean = false
 
+    private var mBluetoothAdapter: BluetoothAdapter? = null
+    private val mBLEDeviceCallback: BluetoothAdapter.LeScanCallback = BluetoothAdapter.LeScanCallback { device, rssi, scanRecord ->
+        addDevice(device)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,28 +63,28 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemClickListener {
             return
         }
 
-        val mBluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        mBluetoothAdapter = mBluetoothManager.adapter
-        if (mBluetoothAdapter == null) {
-            Toast.makeText(this, "BLE is not support!", Toast.LENGTH_LONG).show()
-            finish()
-            return
-        }
+        initViews()
+    }
 
-        val mListView = findViewById<ListView>(R.id.list_devices)
-        mListView.onItemClickListener = this
-        mBleDeviceAdapter = DevicesAdapter()
+    /**
+     * Initilize all views
+     */
+    private fun initViews() {
+        val mListView = findViewById<RecyclerView>(R.id.list_devices)
+        val manager = LinearLayoutManager(this)
+        manager.orientation = LinearLayoutManager.VERTICAL
+        mListView.layoutManager = manager
+        mBleDeviceAdapter = BLEDeviceAdapter()
         mListView.adapter = mBleDeviceAdapter
 
         findViewById<FloatingActionButton>(R.id.fab_scan).setOnClickListener {
             if (scaning) {
-                scaning = false
                 scanDevice(false)
             } else {
-                scaning = true
                 mDeviceList.clear()
                 scanDevice(true)
             }
+            scaning = !scaning
         }
     }
 
@@ -98,6 +105,23 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemClickListener {
     }
 
 
+    /**
+     * 检查是否有蓝牙功能
+     */
+    private fun checkBluetoothFeatures(): Boolean {
+        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH)) {
+            return false
+        }
+
+        val mBluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        mBluetoothAdapter = mBluetoothManager.adapter
+        return mBluetoothAdapter != null
+    }
+
+    /**
+     * 扫描设备
+     * @param enable 开启or关闭
+     */
     private fun scanDevice(enable: Boolean) {
         if (enable) {
             // Scan 5 seconds
@@ -112,64 +136,64 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemClickListener {
         }
     }
 
+    /**
+     * 添加设备
+     */
     private fun addDevice(device: BluetoothDevice) {
         runOnUiThread {
             if (!mDeviceList.contains(device))
                 mDeviceList.add(device)
+
             mBleDeviceAdapter.notifyDataSetChanged()
         }
     }
 
-    private fun checkBluetoothFeatures() = packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH)
+    inner class BLEDeviceAdapter : RecyclerView.Adapter<ViewHolder>() {
 
-    private val mBLEDeviceCallback: BluetoothAdapter.LeScanCallback = BluetoothAdapter.LeScanCallback { device, rssi, scanRecord ->
-        addDevice(device)
-    }
-
-    override fun onItemClick(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-        val device = mDeviceList[position]
-        val intent = Intent(this@MainActivity, BLEGattMsgActivity::class.java)
-        val uuid = device.uuids?.get(0)?.uuid.toString()
-        intent.putExtra(BLEGattMsgActivity.EXTRA_DEVICE_NAME, device.name)
-        intent.putExtra(BLEGattMsgActivity.EXTRA_DEVICE_ADDRESS, device.address)
-        intent.putExtra(BLEGattMsgActivity.EXTRA_DEVICE_UUIDS, uuid)
-        startActivity(intent)
-    }
-
-    inner class DevicesAdapter : BaseAdapter() {
-
-        override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
-            val mHolder: ViewHolder?
-            val mView: View?
-            if (convertView == null) {
-                mView = LayoutInflater.from(this@MainActivity).inflate(R.layout.item_ble_devices, null)
-                mHolder = ViewHolder()
-                mHolder.mDeviceName = mView?.findViewById(R.id.device_name)
-                mView?.tag = mHolder
-            } else {
-                mView = convertView
-                mHolder = convertView.tag as ViewHolder?
-            }
-            if (mDeviceList[position].name != null && mDeviceList[position].name.isNotEmpty())
-                mHolder?.mDeviceName?.text = mDeviceList[position].name
-            else
-                mHolder?.mDeviceName?.text = getString(R.string.ble_unknow_device_name)
-            return mView!!
-
+        override fun getItemCount(): Int {
+            return mDeviceList.size
         }
 
-        override fun getItem(position: Int): Any = mDeviceList[position]
+        private var context: Context? = null
 
-        override fun getItemId(position: Int): Long = position.toLong()
+        override fun onCreateViewHolder(parent: ViewGroup?, viewType: Int): ViewHolder {
+            context = parent?.context
+            val view = LayoutInflater.from(context).inflate(R.layout.item_ble_devices, parent, false)
+            return ViewHolder(view)
+        }
 
-        override fun getCount(): Int = mDeviceList.size
+        override fun onBindViewHolder(holder: ViewHolder?, position: Int) {
+            val device = mDeviceList[position]
+            if (device.name.isNullOrEmpty()) {
+                holder?.mDeviceNameOnCenter?.text = context?.getString(R.string.ble_unknow_device_name)
+                holder?.mDeviceNameOnCenter?.visibility = View.VISIBLE
+                holder?.mDeviceAddr?.visibility = View.GONE
+                holder?.mDeviceName?.visibility = View.GONE
+            } else {
+                holder?.mDeviceName?.text = device.name
+                holder?.mDeviceAddr?.text = device.address
+                holder?.mDeviceAddr?.visibility = View.VISIBLE
+                holder?.mDeviceName?.visibility = View.VISIBLE
+                holder?.mDeviceNameOnCenter?.visibility = View.GONE
+            }
+            holder?.mDeviceCard?.setOnClickListener({
+                val intent = Intent(this@MainActivity, BLEGattMsgActivity::class.java)
+                val uuid = device.uuids?.get(0)?.uuid.toString()
+                intent.putExtra(BLEGattMsgActivity.EXTRA_DEVICE_NAME, device.name)
+                intent.putExtra(BLEGattMsgActivity.EXTRA_DEVICE_ADDRESS, device.address)
+                intent.putExtra(BLEGattMsgActivity.EXTRA_DEVICE_UUIDS, uuid)
+                startActivity(intent)
+            })
+        }
 
 
     }
 
-    class ViewHolder {
-        var mDeviceName: TextView? = null
+    inner class ViewHolder(itemView: View?) : RecyclerView.ViewHolder(itemView) {
+        val mDeviceName: TextView? = itemView?.findViewById(R.id.device_name)
+        val mDeviceAddr: TextView? = itemView?.findViewById(R.id.device_addr)
+        val mDeviceNameOnCenter: TextView? = itemView?.findViewById(R.id.device_name_center)
+        val mDeviceCard: CardView? = itemView?.findViewById(R.id.device_cardview)
     }
-
 
 }
